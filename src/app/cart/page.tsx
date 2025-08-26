@@ -52,7 +52,7 @@ export default function CartPage() {
                             <div>
                               <div className="flex justify-between text-base font-medium">
                                 <h3>
-                                  <Link href="#" className="hover:underline">{item.product.name}</Link>
+                                  <Link href={`/shop/${item.product.id}`} className="hover:underline">{item.product.name}</Link>
                                 </h3>
                                 <p className="ml-4">${item.product.price.toFixed(2)}</p>
                               </div>

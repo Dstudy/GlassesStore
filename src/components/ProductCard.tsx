@@ -20,7 +20,9 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { toast } = useToast();
   const isFavorite = favorites.includes(product.id);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     addToCart(product);
     toast({
       title: 'Added to Cart',
@@ -28,7 +30,9 @@ export default function ProductCard({ product }: ProductCardProps) {
     });
   };
   
-  const handleToggleFavorite = () => {
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     toggleFavorite(product.id);
     toast({
       title: isFavorite ? 'Removed from Favorites' : 'Added to Favorites',
@@ -37,23 +41,22 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <Card className="group overflow-hidden rounded-lg shadow-sm transition-shadow hover:shadow-xl">
+    <Link href={`/shop/${product.id}`} className="block">
+    <Card className="group overflow-hidden rounded-lg shadow-sm transition-shadow hover:shadow-xl h-full flex flex-col">
       <div className="overflow-hidden">
-        <Link href="#">
-          <Image
-            src={product.image}
-            alt={product.name}
-            width={400}
-            height={400}
-            className="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
-            data-ai-hint="stylish glasses"
-          />
-        </Link>
+        <Image
+          src={product.image}
+          alt={product.name}
+          width={400}
+          height={400}
+          className="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+          data-ai-hint="stylish glasses"
+        />
       </div>
-      <CardContent className="p-4">
+      <CardContent className="p-4 flex-grow">
         <div className="flex justify-between items-start">
             <CardTitle className="text-lg font-body font-semibold leading-tight tracking-normal mb-1">
-                <Link href="#" className="hover:text-primary transition-colors">{product.name}</Link>
+                <span className="hover:text-primary transition-colors">{product.name}</span>
             </CardTitle>
             <div className="flex items-center gap-1 text-sm text-amber-500">
                 <Star className="w-4 h-4 fill-current"/>
@@ -76,5 +79,6 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
       </CardFooter>
     </Card>
+    </Link>
   );
 }
