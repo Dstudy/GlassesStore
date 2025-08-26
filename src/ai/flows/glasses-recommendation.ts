@@ -11,6 +11,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import {products} from '@/lib/products';
 import {z} from 'genkit';
 
 const GlassesRecommendationInputSchema = z.object({
@@ -20,10 +21,23 @@ const GlassesRecommendationInputSchema = z.object({
 });
 export type GlassesRecommendationInput = z.infer<typeof GlassesRecommendationInputSchema>;
 
+const ProductSchema = z.object({
+  id: z.number().describe('The product ID.'),
+  name: z.string().describe('The name of the product.'),
+  price: z.number().describe('The price of the product.'),
+  description: z.string().describe('The description of the product.'),
+  image: z.string().describe('The image URL of the product.'),
+  isFeatured: z.boolean().describe('Whether the product is featured.'),
+  rating: z.number().describe('The rating of the product.'),
+  category: z.enum(['Men', 'Women', 'Unisex', 'Sunglasses']).describe('The category of the product.'),
+  frameStyle: z.enum(['Aviator', 'Wayfarer', 'Round', 'Cat Eye', 'Square']).describe('The frame style of the product.'),
+});
+
 const GlassesRecommendationOutputSchema = z.object({
   recommendation: z
     .string()
     .describe('A recommendation for suitable eyeglasses based on the user\'s needs description.'),
+  recommendedProducts: z.array(ProductSchema).describe('A list of recommended products.'),
 });
 export type GlassesRecommendationOutput = z.infer<typeof GlassesRecommendationOutputSchema>;
 
@@ -42,7 +56,11 @@ const glassesRecommendationPrompt = ai.definePrompt({
   Needs Description: {{{needsDescription}}}
 
   Your recommendation should be concise and explain why the recommended glasses are suitable for the user's needs.
-  If you can't make a recommendation, explain why.`, //Can't access product catalog
+  Also, provide a list of 3 products from the catalog that match the user's needs.
+
+  Product Catalog:
+  ${JSON.stringify(products)}
+  `,
 });
 
 const glassesRecommendationFlow = ai.defineFlow(

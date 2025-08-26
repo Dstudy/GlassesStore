@@ -6,12 +6,15 @@ import { getGlassesRecommendation, AIFormState } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import ProductCard from './ProductCard';
 import { Sparkles, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const initialState: AIFormState = {
   message: null,
   recommendation: null,
+  recommendedProducts: null,
 };
 
 function SubmitButton() {
@@ -81,6 +84,24 @@ export default function AIAssistant() {
                         </CardHeader>
                         <CardContent>
                             <p className="text-primary/90">{state.recommendation}</p>
+                            {state.recommendedProducts && state.recommendedProducts.length > 0 && (
+                                <div className="mt-6">
+                                    <h4 className="font-headline text-lg text-primary mb-4">Suggested Products:</h4>
+                                    <Carousel opts={{ align: 'start', loop: true }} className="w-full">
+                                        <CarouselContent className="-ml-4">
+                                            {state.recommendedProducts.map((product, index) => (
+                                                <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                                                    <div className="p-1">
+                                                        <ProductCard product={product} />
+                                                    </div>
+                                                </CarouselItem>
+                                            ))}
+                                        </CarouselContent>
+                                        <CarouselPrevious className="ml-12" />
+                                        <CarouselNext className="mr-12" />
+                                    </Carousel>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
