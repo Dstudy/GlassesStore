@@ -28,60 +28,74 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { authApi, ApiError } from "@/lib/api";
 
-const loginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email." }),
-  password: z.string().min(1, { message: "Please enter your password." }),
-});
+// 1. Tạo schema xác thực cho đăng ký
+const registerSchema = z
+  .object({
+    name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+    email: z.string().email({ message: "Please enter a valid email." }),
+    password: z
+      .string()
+      .min(6, { message: "Password must be at least 6 characters." }),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"], // Gắn lỗi vào trường confirmPassword
+  });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
 
-export default function LoginPage() {
-  const { login } = useContext(AppContext);
+export default function RegisterPage() {
+  // 2. Sử dụng hàm 'register' từ context
+  // (Bạn đã thêm hàm này vào AppContext.tsx ở các bước trước)
+  const { register } = useContext(AppContext);
   const router = useRouter();
   const { toast } = useToast();
 
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
+  // Lấy trạng thái 'isSubmitting'
   const { isSubmitting } = form.formState;
 
-  async function onSubmit(data: LoginFormData) {
+  // 3. Cập nhật hàm onSubmit để gọi authApi.register
+  async function onSubmit(data: RegisterFormData) {
     try {
-      // 1. Gọi API đăng nhập
-      const userData = await authApi.login(data.email, data.password);
+      // Gọi API đăng ký
+      const userData = await authApi.register(
+        data.name,
+        data.email,
+        data.password
+      );
 
-      // 2. Nếu thành công, gọi hàm login từ Context với dữ liệu chuẩn
-      login(userData.id, userData.name, userData.roleID);
+      // Nếu thành công, gọi hàm 'register' của context (để đăng nhập)
+      register(userData.id, userData.name, userData.roleID);
 
       toast({
-        title: "Welcome back!",
-        description: "You've successfully logged in.",
+        title: "Account Created!",
+        description: "You've successfully created your account.",
       });
 
-      // 3. Chuyển hướng dựa trên roleID từ API
-      if (userData.roleID === 1) {
-        router.push("/admin/dashboard");
-      } else {
-        router.push("/");
-      }
+      // Chuyển hướng về trang chủ
+      router.push("/");
     } catch (error) {
-      // 4. Xử lý lỗi đăng nhập
-      console.error("Login failed:", error);
+      console.error("Registration failed:", error);
 
-      // Hiển thị thông báo lỗi thân thiện
+      // Xử lý lỗi (ví dụ: email đã tồn tại)
       const message =
-        error instanceof ApiError &&
-        (error.status === 404 || error.status === 401)
-          ? "Invalid email or password."
+        error instanceof ApiError && error.status === 409 // 409 Conflict
+          ? "This email is already in use."
           : "An unexpected error occurred. Please try again.";
 
       toast({
-        title: "Login Failed",
+        title: "Registration Failed",
         description: message,
         variant: "destructive",
       });
@@ -100,10 +114,10 @@ export default function LoginPage() {
         <Card className="shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="font-headline text-2xl">
-              Welcome Back
+              Create an Account
             </CardTitle>
             <CardDescription>
-              Enter your credentials to access your account.
+              Enter your details to get started.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -112,6 +126,24 @@ export default function LoginPage() {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-4"
               >
+                {/* Thêm trường 'Name' */}
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="John Doe"
+                          {...field}
+                          disabled={isSubmitting}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="email"
@@ -122,8 +154,8 @@ export default function LoginPage() {
                         <Input
                           type="email"
                           placeholder="m@example.com"
-                          disabled={isSubmitting}
                           {...field}
+                          disabled={isSubmitting}
                         />
                       </FormControl>
                       <FormMessage />
@@ -140,8 +172,27 @@ export default function LoginPage() {
                         <Input
                           type="password"
                           placeholder="••••••••"
-                          disabled={isSubmitting}
                           {...field}
+                          disabled={isSubmitting}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {/* Thêm trường 'Confirm Password' */}
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          {...field}
+                          disabled={isSubmitting}
                         />
                       </FormControl>
                       <FormMessage />
@@ -153,19 +204,20 @@ export default function LoginPage() {
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Logging In..." : "Log In"}
+                  {isSubmitting ? "Creating Account..." : "Register"}
                 </Button>
               </form>
             </Form>
           </CardContent>
           <CardFooter className="flex flex-col items-center gap-2 text-sm">
             <p className="text-muted-foreground">
-              Don't have an account?{" "}
+              {/* Đổi link chân trang */}
+              Already have an account?{" "}
               <Link
-                href="#"
+                href="/login"
                 className="font-semibold text-primary hover:underline"
               >
-                Sign up
+                Log in
               </Link>
             </p>
           </CardFooter>

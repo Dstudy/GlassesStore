@@ -20,6 +20,11 @@ export default function FavoritesPage() {
 
   useEffect(() => {
     const loadFavoriteProducts = async () => {
+      if (!user) {
+        setLoading(false);
+        setFavoriteProducts([]); // Đảm bảo danh sách rỗng nếu đã đăng xuất
+        return;
+      }
       try {
         setLoading(true);
         setError(null);

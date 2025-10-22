@@ -16,8 +16,9 @@ interface AppContextType {
   getCartTotal: () => number;
   favorites: number[];
   toggleFavorite: (productId: number) => void;
-  user: { name: string; roleID?: number } | null;
-  login: (name: string, roleID?: number) => void;
+  user: { id: number; name: string; roleID?: number } | null;
+  login: (id: number, name: string, roleID?: number) => void;
+  register: (id: number, name: string, roleID?: number) => void;
   logout: () => void;
   isAdmin: () => boolean;
   isUserLoaded: boolean;
@@ -33,7 +34,8 @@ export const AppContext = createContext<AppContextType>({
   favorites: [],
   toggleFavorite: () => {},
   user: null,
-  login: () => {},
+  login: () => {}, // THAY ĐỔI: (id, name, roleID) => {} cũng được, nhưng () => {} là đủ cho giá trị mặc định
+  register: () => {},
   logout: () => {},
   isAdmin: () => false,
   isUserLoaded: false,
@@ -42,9 +44,11 @@ export const AppContext = createContext<AppContextType>({
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
-  const [user, setUser] = useState<{ name: string; roleID?: number } | null>(
-    null
-  );
+  const [user, setUser] = useState<{
+    id: number; // THAY ĐỔI: Thêm 'id'
+    name: string;
+    roleID?: number;
+  } | null>(null);
   const [isUserLoaded, setIsUserLoaded] = useState(false);
 
   useEffect(() => {
@@ -74,7 +78,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // Sync favorites from backend when user is present
   useEffect(() => {
-    if (!user?.id) return; // Only sync when user is logged in and has ID
+    if (!user?.id) return; // Chỉ đồng bộ khi user đăng nhập và có ID
 
     (async () => {
       try {
@@ -96,7 +100,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // Load cart from backend when user is available
   useEffect(() => {
-    if (!user?.id) return; // Only load when user is logged in and has ID
+    if (!user?.id) return; // Chỉ tải khi user đăng nhập và có ID
 
     (async () => {
       try {
@@ -202,8 +206,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const login = (name: string, roleID?: number) => {
-    setUser({ name, roleID });
+  // THAY ĐỔI: Thêm 'id' vào hàm login
+  const login = (id: number, name: string, roleID?: number) => {
+    setUser({ id, name, roleID });
+  };
+
+  const register = (id: number, name: string, roleID?: number) => {
+    setUser({ id, name, roleID });
   };
 
   const logout = () => {
@@ -227,6 +236,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         toggleFavorite,
         user,
         login,
+        register,
         logout,
         isAdmin,
         isUserLoaded,

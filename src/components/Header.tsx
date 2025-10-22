@@ -7,7 +7,24 @@ import { AppContext } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { ShoppingCart, Heart, User, Menu, Package } from "lucide-react";
+import {
+  ShoppingCart,
+  Heart,
+  User,
+  Menu,
+  Package,
+  LogIn,
+  LogOut,
+  UserPlus,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
@@ -39,8 +56,8 @@ export default function Header() {
     ));
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center px-4">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 ">
+      <div className="container mx-auto flex h-16 items-center px-4 ">
         <Link href="/" className="mr-6 flex items-center space-x-2">
           <span className="font-headline text-2xl font-bold text-primary">
             Spectra Specs
@@ -71,19 +88,51 @@ export default function Header() {
               <span className="sr-only">Favorites</span>
             </Link>
           </Button>
-          {user ? (
-            <Button variant="ghost" size="icon" onClick={logout}>
-              <User className="h-5 w-5 text-accent" />
-              <span className="sr-only">Log Out</span>
-            </Button>
-          ) : (
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/login">
-                <User className="h-5 w-5" />
-                <span className="sr-only">Log In</span>
-              </Link>
-            </Button>
-          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <User
+                  className={cn(
+                    "h-5 w-5",
+                    user && "text-accent" // Làm nổi bật icon nếu đã đăng nhập
+                  )}
+                />
+                <span className="sr-only">User Menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {user ? (
+                // --- Trường hợp đã đăng nhập ---
+                <>
+                  <DropdownMenuLabel>Hello, {user.name}!</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log Out</span>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                // --- Trường hợp chưa đăng nhập ---
+                <>
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <Link href="/login" passHref>
+                    <DropdownMenuItem className="cursor-pointer">
+                      <LogIn className="mr-2 h-4 w-4" />
+                      <span>Log In</span>
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link href="/register" passHref>
+                    <DropdownMenuItem className="cursor-pointer">
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      <span>Register</span>
+                    </DropdownMenuItem>
+                  </Link>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>

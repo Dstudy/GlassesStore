@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -8,6 +8,7 @@ import { productApi } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight } from "lucide-react";
+import { AppContext } from "@/context/AppContext";
 
 interface OrderSummary {
   id: number;
@@ -17,6 +18,7 @@ interface OrderSummary {
 }
 
 export default function OrdersPage() {
+  const { user } = useContext(AppContext);
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +26,12 @@ export default function OrdersPage() {
   useEffect(() => {
     const userId = user?.id; // TODO: implement proper auth context
     (async () => {
+      if (!userId) {
+        setError("User not logged in");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);

@@ -897,4 +897,78 @@ export const adminOrdersApi = {
   },
 };
 
+export const authApi = {
+  /**
+   * Đăng nhập người dùng
+   * @param email Email của người dùng
+   * @param password Mật khẩu của người dùng
+   * @returns Thông tin người dùng nếu thành công
+   */
+
+  async register(
+    name: string,
+    email: string,
+    password: string
+  ): Promise<{ id: number; name: string; email: string; roleID?: number }> {
+    const res = await fetchApi<any>("/api/register", {
+      method: "POST",
+      body: JSON.stringify({ fullname:name, email, password }),
+    } as any);
+
+    const user = res?.data?.user ?? res?.user ?? res?.data ?? res;
+
+    if (!user || typeof user.id !== "number" || (typeof user.name !== "string" && typeof user.fullname !== "string")) {
+      throw new ApiError(
+        404,
+        "User data not found or in invalid format from API"
+      );
+    }
+
+    return {
+      id: Number(user.id),
+      name: String(user.name ?? user.fullname ?? ""),
+      email: String(user.email ?? email),
+      roleID: user.roleID
+        ? Number(user.roleID)
+        : user.role_id
+        ? Number(user.role_id)
+        : undefined,
+    };
+  },
+
+  async login(
+    email: string,
+    password: string
+  ): Promise<{ id: number; name: string; email: string; roleID?: number }> {
+    const res = await fetchApi<any>("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    } as any);
+
+    // Backend có thể trả về dữ liệu user trong nhiều cấu trúc khác nhau
+    // Ví dụ: { data: { user: {...} } } hoặc { user: {...} } hoặc chỉ { ... }
+    const user = res?.data?.user ?? res?.user ?? res?.data ?? res;
+
+    // Kiểm tra tính hợp lệ của dữ liệu user trả về
+    if (!user || typeof user.id !== "number" || (typeof user.name !== "string" && typeof user.fullname !== "string")) {
+      throw new ApiError(
+        404,
+        "User data not found or in invalid format from API"
+      );
+    }
+
+    // Trả về đối tượng user đã được chuẩn hóa
+    return {
+      id: Number(user.id),
+      name: String(user.name ?? user.fullname ?? ""), // Ưu tiên 'name', sau đó 'fullname'
+      email: String(user.email ?? email),
+      roleID: user.roleID
+        ? Number(user.roleID)
+        : user.role_id
+        ? Number(user.role_id)
+        : undefined, // Xử lý cả 'roleID' và 'role_id'
+    };
+  },
+};
+
 export { ApiError };
