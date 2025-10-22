@@ -31,7 +31,7 @@ const slides: HeroSlide[] = [
     subheadline: "Premium eyewear for everyday confidence.",
     ctaLabel: "Shop Frames",
     ctaHref: "/shop",
-    alignment: "left",
+    alignment: "right",
   },
   {
     image: "hero2.avif",
@@ -40,7 +40,7 @@ const slides: HeroSlide[] = [
     subheadline: "Lightweight, durable, and irresistibly stylish.",
     ctaLabel: "Explore Collection",
     ctaHref: "/shop",
-    alignment: "center",
+    alignment: "left",
   },
   {
     image: "hero3.avif",
@@ -49,7 +49,7 @@ const slides: HeroSlide[] = [
     subheadline: "Protect your eyes during long screen time.",
     ctaLabel: "Shop Blue Light",
     ctaHref: "/shop",
-    alignment: "right",
+    alignment: "left",
   },
 ];
 
@@ -91,14 +91,23 @@ export default function HeroSection() {
                     priority
                     className="object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" aria-hidden />
+                  <div
+                    className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"
+                    aria-hidden
+                  />
                   <div className="absolute inset-0">
-                    <div className={`container mx-auto flex h-full flex-col justify-center gap-4 px-4 ${align.container}`}>
-                      <h1 className={`font-headline text-3xl font-bold tracking-tight text-white drop-shadow-sm sm:text-4xl md:text-5xl ${align.text}`}>
+                    <div
+                      className={`container mx-auto flex h-full flex-col justify-center gap-4 px-4 ${align.container}`}
+                    >
+                      <h1
+                        className={`font-headline text-3xl font-bold tracking-tight text-white drop-shadow-sm sm:text-4xl md:text-5xl ${align.text}`}
+                      >
                         {slide.headline}
                       </h1>
                       {slide.subheadline ? (
-                        <p className={`max-w-2xl text-base text-white/90 drop-shadow-sm sm:text-lg md:text-xl ${align.text}`}>
+                        <p
+                          className={`max-w-2xl text-base text-white/90 drop-shadow-sm sm:text-lg md:text-xl ${align.text}`}
+                        >
                           {slide.subheadline}
                         </p>
                       ) : null}
