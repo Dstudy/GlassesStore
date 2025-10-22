@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useContext, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { AppContext } from '@/context/AppContext';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { ShoppingCart, Heart, User, Menu } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useContext, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { AppContext } from "@/context/AppContext";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ShoppingCart, Heart, User, Menu, Package } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: '/shop', label: 'Shop' },
-  { href: '/#ai-assistant', label: 'AI Assistant' },
-  { href: '/#testimonials', label: 'Testimonials' },
+  { href: "/shop", label: "Shop" },
+  { href: "/#ai-assistant", label: "AI Assistant" },
+  { href: "/#testimonials", label: "Testimonials" },
 ];
 
 export default function Header() {
@@ -22,8 +22,8 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const renderNavLinks = (isMobile = false) => (
-    navLinks.map(link => (
+  const renderNavLinks = (isMobile = false) =>
+    navLinks.map((link) => (
       <Link
         key={link.href}
         href={link.href}
@@ -36,26 +36,33 @@ export default function Header() {
       >
         {link.label}
       </Link>
-    ))
-  );
+    ));
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center px-4">
         <Link href="/" className="mr-6 flex items-center space-x-2">
-          <span className="font-headline text-2xl font-bold text-primary">Spectra Specs</span>
+          <span className="font-headline text-2xl font-bold text-primary">
+            Spectra Specs
+          </span>
         </Link>
-        <nav className="hidden gap-6 md:flex">
-          {renderNavLinks()}
-        </nav>
+        <nav className="hidden gap-6 md:flex">{renderNavLinks()}</nav>
         <div className="flex flex-1 items-center justify-end space-x-2">
           <Button variant="ghost" size="icon" asChild>
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5" />
               {cartItemCount > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 justify-center p-0 text-xs bg-accent text-accent-foreground">{cartItemCount}</Badge>
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 justify-center p-0 text-xs bg-accent text-accent-foreground">
+                  {cartItemCount}
+                </Badge>
               )}
               <span className="sr-only">Shopping Cart</span>
+            </Link>
+          </Button>
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/orders">
+              <Package className="h-5 w-5" />
+              <span className="sr-only">Orders</span>
             </Link>
           </Button>
           <Button variant="ghost" size="icon" asChild>
@@ -86,12 +93,12 @@ export default function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
-                <Link href="/" className="mr-6 flex items-center space-x-2 mb-8">
-                    <span className="font-headline text-2xl font-bold text-primary">Spectra Specs</span>
-                </Link>
-                <nav className="grid gap-4">
-                  {renderNavLinks(true)}
-                </nav>
+              <Link href="/" className="mr-6 flex items-center space-x-2 mb-8">
+                <span className="font-headline text-2xl font-bold text-primary">
+                  Spectra Specs
+                </span>
+              </Link>
+              <nav className="grid gap-4">{renderNavLinks(true)}</nav>
             </SheetContent>
           </Sheet>
         </div>

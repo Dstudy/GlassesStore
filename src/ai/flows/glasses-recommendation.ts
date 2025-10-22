@@ -11,7 +11,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {products} from '@/lib/products';
+import {productApi} from '@/lib/api';
 import {z} from 'genkit';
 
 const GlassesRecommendationInputSchema = z.object({
@@ -25,12 +25,21 @@ const ProductSchema = z.object({
   id: z.number().describe('The product ID.'),
   name: z.string().describe('The name of the product.'),
   price: z.number().describe('The price of the product.'),
+  picUrl: z.array(z.string()).describe('Array of product image URLs.'),
   description: z.string().describe('The description of the product.'),
-  image: z.string().describe('The image URL of the product.'),
-  isFeatured: z.boolean().describe('Whether the product is featured.'),
+  dimensions: z.object({
+    width: z.number().describe('Width of the glasses in mm.'),
+    length: z.number().describe('Length of the glasses in mm.'),
+    lensWidth: z.number().describe('Width of the lens in mm.'),
+    lensHeight: z.number().describe('Height of the lens in mm.'),
+    bridge: z.number().describe('Bridge width in mm.'),
+  }).describe('Product dimensions.'),
+  shape: z.enum(['browline', 'chữ nhật', 'đa giác', 'Hình Oval', 'hình tròn', 'hình vuông', 'mắt mèo']).describe('The shape of the glasses.'),
+  brand: z.enum(['Bevis', 'Chemi', 'Crizal Rock', 'Hoga', 'Sky Lens']).describe('The brand of the product.'),
+  material: z.enum(['Kim loại', 'nhựa', 'nhựa dẻo', 'titan', 'nhựa pha kim loại']).describe('The material of the glasses.'),
   rating: z.number().describe('The rating of the product.'),
-  category: z.enum(['Men', 'Women', 'Unisex', 'Sunglasses']).describe('The category of the product.'),
-  frameStyle: z.enum(['Aviator', 'Wayfarer', 'Round', 'Cat Eye', 'Square']).describe('The frame style of the product.'),
+  isFeatured: z.boolean().describe('Whether the product is featured.'),
+  color: z.string().describe('The color of the glasses.'),
 });
 
 const GlassesRecommendationOutputSchema = z.object({
@@ -45,23 +54,6 @@ export async function glassesRecommendation(input: GlassesRecommendationInput): 
   return glassesRecommendationFlow(input);
 }
 
-const glassesRecommendationPrompt = ai.definePrompt({
-  name: 'glassesRecommendationPrompt',
-  input: {schema: GlassesRecommendationInputSchema},
-  output: {schema: GlassesRecommendationOutputSchema},
-  prompt: `You are an expert in recommending eyeglasses based on user needs.
-
-  Given the following description of the user's needs, recommend a suitable pair of eyeglasses from our catalog.
-
-  Needs Description: {{{needsDescription}}}
-
-  Your recommendation should be concise and explain why the recommended glasses are suitable for the user's needs.
-  Also, provide a list of 3 products from the catalog that match the user's needs.
-
-  Product Catalog:
-  ${JSON.stringify(products)}
-  `,
-});
 
 const glassesRecommendationFlow = ai.defineFlow(
   {
@@ -70,7 +62,36 @@ const glassesRecommendationFlow = ai.defineFlow(
     outputSchema: GlassesRecommendationOutputSchema,
   },
   async input => {
-    const {output} = await glassesRecommendationPrompt(input);
+    // Fetch products from API
+    const products = await productApi.getAllProducts();
+    
+    // Create a new prompt with the fetched products
+    const dynamicPrompt = ai.definePrompt({
+      name: 'glassesRecommendationPrompt',
+      input: {schema: GlassesRecommendationInputSchema},
+      output: {schema: GlassesRecommendationOutputSchema},
+      prompt: `You are an expert in recommending eyeglasses based on user needs.
+
+  Given the following description of the user's needs, recommend a suitable pair of eyeglasses from our catalog.
+
+  Needs Description: {{{needsDescription}}}
+
+  Your recommendation should be concise and explain why the recommended glasses are suitable for the user's needs.
+  Consider factors like:
+  - Shape (hình dáng): browline, chữ nhật, đa giác, Hình Oval, hình tròn, hình vuông, mắt mèo
+  - Brand (thương hiệu): Bevis, Chemi, Crizal Rock, Hoga, Sky Lens
+  - Material (chất liệu): Kim loại, nhựa, nhựa dẻo, titan, nhựa pha kim loại
+  - Color (màu sắc): Various colors available
+  - Dimensions (kích thước): width, length, lens width/height, bridge
+
+  Also, provide a list of 3 products from the catalog that match the user's needs.
+
+  Product Catalog:
+  ${JSON.stringify(products)}
+  `,
+    });
+
+    const {output} = await dynamicPrompt(input);
     return output!;
   }
 );
