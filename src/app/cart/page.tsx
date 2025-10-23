@@ -11,7 +11,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Minus, Trash2, ShoppingCart } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingCart, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,14 +32,21 @@ export default function CartPage() {
   // THAY ĐỔI 3: Thêm state cho pop-up
   const [showAuthModal, setShowAuthModal] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(false);
+
   // Hàm xử lý khi nhấp vào nút checkout
-  const handleCheckoutClick = () => {
-    if (user) {
-      // 1. Nếu đã đăng nhập, chuyển đến trang checkout
-      router.push("/checkout");
-    } else {
-      // 2. Nếu chưa đăng nhập, hiển thị pop-up
-      setShowAuthModal(true);
+  const handleCheckoutClick = async () => {
+    setIsLoading(true);
+    try {
+      if (user) {
+        await router.push("/checkout");
+      } else {
+        setShowAuthModal(true);
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error("Checkout navigation failed:", error);
+      setIsLoading(false);
     }
   };
 
@@ -192,7 +199,11 @@ export default function CartPage() {
                       size="lg"
                       className="mt-6 w-full bg-accent text-accent-foreground hover:bg-accent/90"
                       onClick={handleCheckoutClick} // Bỏ asChild, dùng onClick
+                      disabled={isLoading} // Vô hiệu hóa khi đang tải
                     >
+                      {isLoading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
                       Proceed to Checkout
                     </Button>
                   </CardContent>
