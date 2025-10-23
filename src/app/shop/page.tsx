@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+// THAY ĐỔI: Thêm 'useRef'
+import { useState, useMemo, useEffect, useRef } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -22,6 +23,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+// THAY ĐỔI: Thêm các component Pagination
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination";
 import { Search, Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -43,16 +54,24 @@ export default function ShopPage() {
   const [error, setError] = useState<string | null>(null);
   const [initialLoaded, setInitialLoaded] = useState(false);
 
+  // THAY ĐỔI: Thêm state cho phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+
+  // THAY ĐỔI: Cập nhật các hàm xử lý để reset về trang 1
   const handleShapeChange = (shape: string) => {
     setSelectedShapes((prev) =>
       prev.includes(shape) ? prev.filter((s) => s !== shape) : [...prev, shape]
     );
+    setCurrentPage(1); // Reset về trang 1
   };
 
   const handleBrandChange = (brand: string) => {
     setSelectedBrands((prev) =>
       prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
     );
+    setCurrentPage(1); // Reset về trang 1
   };
 
   const handleMaterialChange = (material: string) => {
@@ -61,31 +80,74 @@ export default function ShopPage() {
         ? prev.filter((m) => m !== material)
         : [...prev, material]
     );
+    setCurrentPage(1); // Reset về trang 1
   };
 
   const handleColorChange = (color: string) => {
     setSelectedColors((prev) =>
       prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
     );
+    setCurrentPage(1); // Reset về trang 1
   };
 
-  // Load initial data
+  // THAY ĐỔI: Cập nhật hàm xử lý tìm kiếm
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset về trang 1
+  };
+
+  // THAY ĐỔI: Cập nhật hàm xử lý sắp xếp
+  const handleSortChange = (value: string) => {
+    setSortOrder(value);
+    setCurrentPage(1); // Reset về trang 1
+  };
+
+  // THAY ĐỔI: Xóa cả 2 useEffect cũ và thay bằng 1 useEffect duy nhất
   useEffect(() => {
-    const loadInitialData = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const [productsData, filterOptions] = await Promise.all([
-          productApi.getAllProducts(),
-          productApi.getFilterOptions(),
-        ]);
+        // 1. Xây dựng bộ lọc (filters)
+        // GIẢ ĐỊNH: API của bạn giờ có thể chấp nhận mảng (vd: brands: string[])
+        // Nếu API chỉ chấp nhận 1 giá trị, bạn phải quay lại logic `length === 1`
+        const filters: ProductFilters = {
+          search: searchTerm || undefined,
+          sortBy: sortOrder as any,
+          shape: selectedShapes.length > 0 ? selectedShapes[0] : undefined, // Cập nhật nếu API hỗ trợ mảng
+          color: selectedColors.length > 0 ? selectedColors[0] : undefined, // Cập nhật nếu API hỗ trợ mảng
+          brand: selectedBrands.length > 0 ? selectedBrands[0] : undefined, // Cập nhật nếu API hỗ trợ mảng
+          material:
+            selectedMaterials.length > 0 ? selectedMaterials[0] : undefined, // Cập nhật nếu API hỗ trợ mảng
+          page: currentPage, // <-- THÊM TRANG HIỆN TẠI
+        };
 
-        setProducts(productsData);
-        setShapes(filterOptions.shapes || []);
-        setBrands(filterOptions.brands || []);
-        setMaterials(filterOptions.materials || []);
-        setColors(filterOptions.colors || []);
+        // 2. Tải dữ liệu sản phẩm VÀ bộ lọc (chỉ khi cần)
+        // GIẢ ĐỊNH: API trả về { products, totalPages, totalProducts, currentPage }
+
+        const tasks: Promise<any>[] = [productApi.getAllProducts(filters)];
+
+        // Chỉ tải các tùy chọn bộ lọc trong lần đầu tiên
+        if (!initialLoaded) {
+          tasks.push(productApi.getFilterOptions());
+        }
+
+        const [productsData, filterOptions] = await Promise.all(tasks);
+
+        // 3. Cập nhật state
+        setProducts(productsData.products || []);
+        setTotalPages(productsData.totalPages || 1);
+        setTotalProducts(productsData.totalProducts || 0);
+        setCurrentPage(productsData.currentPage || 1);
+
+        if (filterOptions) {
+          setShapes(filterOptions.shapes || []);
+          setBrands(filterOptions.brands || []);
+          setMaterials(filterOptions.materials || []);
+          setColors(filterOptions.colors || []);
+          setInitialLoaded(true);
+        }
       } catch (err) {
         console.error("Failed to load data:", err);
         setError(
@@ -93,115 +155,40 @@ export default function ShopPage() {
         );
       } finally {
         setLoading(false);
-        setInitialLoaded(true);
       }
     };
 
-    loadInitialData();
-  }, []);
-
-  // Load filtered products when filters change
-  useEffect(() => {
-    const loadFilteredProducts = async () => {
-      if (!initialLoaded) return; // Wait for initial load to complete
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        const filters: ProductFilters = {
-          search: searchTerm || undefined,
-          sortBy: sortOrder as any,
-        };
-
-        // Add shape filter if only one is selected (API expects single shape)
-        if (selectedShapes.length === 1) {
-          filters.shape = selectedShapes[0];
-        }
-
-        // Add color filter if only one is selected (API may expect single color)
-        if (selectedColors.length === 1) {
-          filters.color = selectedColors[0];
-        }
-
-        // Add brand/material filters when a single option is selected
-        if (selectedBrands.length === 1) {
-          filters.brand = selectedBrands[0];
-        }
-        if (selectedMaterials.length === 1) {
-          filters.material = selectedMaterials[0];
-        }
-
-        const productsData = await productApi.getAllProducts(filters);
-        setProducts(productsData);
-      } catch (err) {
-        console.error("Failed to load filtered products:", err);
-        setError(
-          err instanceof ApiError ? err.message : "Failed to load products"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadFilteredProducts();
+    loadData();
   }, [
-    initialLoaded,
+    // Chạy lại khi bất kỳ bộ lọc hoặc trang nào thay đổi
     searchTerm,
     sortOrder,
     selectedShapes,
-    selectedColors,
-    selectedBrands,
-    selectedMaterials,
-  ]);
-
-  const filteredAndSortedProducts = useMemo(() => {
-    let filtered = products;
-
-    // Client-side filtering for multiple selections (when API doesn't support it)
-    if (selectedShapes.length > 1) {
-      filtered = filtered.filter((p) => selectedShapes.includes(p.shape));
-    }
-
-    if (selectedBrands.length > 0) {
-      filtered = filtered.filter((p) => selectedBrands.includes(p.brand));
-    }
-
-    if (selectedMaterials.length > 0) {
-      filtered = filtered.filter((p) => selectedMaterials.includes(p.material));
-    }
-
-    if (selectedColors.length > 1) {
-      filtered = filtered.filter((p) => selectedColors.includes(p.color));
-    }
-
-    // Client-side sorting (when API doesn't support it)
-    switch (sortOrder) {
-      case "price-asc":
-        return filtered.sort((a, b) => a.price - b.price);
-      case "price-desc":
-        return filtered.sort((a, b) => b.price - a.price);
-      case "rating":
-        return filtered.sort((a, b) => b.rating - a.rating);
-      case "featured":
-      default:
-        return filtered.sort(
-          (a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0)
-        );
-    }
-  }, [
-    products,
-    selectedShapes,
     selectedBrands,
     selectedMaterials,
     selectedColors,
-    sortOrder,
+    currentPage,
   ]);
+
+  // THAY ĐỔI: Xóa bỏ `useMemo` (filteredAndSortedProducts)
+  // Máy chủ sẽ thực hiện tất cả việc lọc và sắp xếp
+
+  // Hàm xử lý phân trang
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      // Cuộn lên đầu trang sản phẩm khi đổi trang
+      document
+        .querySelector(".lg\\:col-span-3")
+        ?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
+        {/* ... (Phần Header của trang không đổi) ... */}
         <div className="bg-primary/5">
           <div className="container mx-auto px-4 py-12 text-center">
             <h1 className="font-headline text-5xl font-bold text-primary">
@@ -215,6 +202,7 @@ export default function ShopPage() {
 
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
+            {/* ... (Phần <aside> bộ lọc không đổi) ... */}
             <aside className="lg:col-span-1">
               <div className="sticky top-24 space-y-6">
                 <div className="relative">
@@ -223,7 +211,7 @@ export default function ShopPage() {
                     placeholder="Search products..."
                     className="pl-10"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange} // THAY ĐỔI
                   />
                 </div>
 
@@ -232,6 +220,7 @@ export default function ShopPage() {
                   defaultValue={["shape", "brand", "material", "color"]}
                   className="w-full"
                 >
+                  {/* (Các AccordionItem không thay đổi, chúng đã gọi đúng hàm) */}
                   <AccordionItem value="shape">
                     <AccordionTrigger className="font-headline text-lg">
                       Hình dáng
@@ -335,12 +324,13 @@ export default function ShopPage() {
                       Loading products...
                     </span>
                   ) : (
-                    `${filteredAndSortedProducts.length} products`
+                    // THAY ĐỔI: Sử dụng totalProducts từ state
+                    `${totalProducts} products`
                   )}
                 </p>
                 <Select
                   value={sortOrder}
-                  onValueChange={setSortOrder}
+                  onValueChange={handleSortChange} // THAY ĐỔI
                   disabled={loading}
                 >
                   <SelectTrigger className="w-[180px]">
@@ -358,14 +348,12 @@ export default function ShopPage() {
                   </SelectContent>
                 </Select>
               </div>
-
               {error && (
                 <Alert className="mt-4">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-
               {loading ? (
                 <div className="mt-8 flex items-center justify-center py-12">
                   <div className="flex items-center gap-2">
@@ -375,18 +363,93 @@ export default function ShopPage() {
                 </div>
               ) : (
                 <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 xl:grid-cols-3 xl:gap-x-8">
-                  {filteredAndSortedProducts.map((product) => (
+                  {/* THAY ĐỔI: Render 'products' trực tiếp từ state */}
+                  {products.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}
                 </div>
               )}
-
-              {!loading && !error && filteredAndSortedProducts.length === 0 && (
+              {/* THAY ĐỔI: Kiểm tra 'products.length' */}
+              {!loading && !error && products.length === 0 && (
                 <div className="mt-8 text-center py-12">
                   <p className="text-muted-foreground">
                     No products found matching your criteria.
                   </p>
                 </div>
+              )}
+              {/* THAY ĐỔI: Thêm component Pagination */}
+              {!loading && totalPages > 1 && (
+                <Pagination className="mt-12">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(currentPage - 1);
+                        }}
+                        className={
+                          currentPage === 1
+                            ? "pointer-events-none opacity-50"
+                            : undefined
+                        }
+                      />
+                    </PaginationItem>
+
+                    {/* Logic hiển thị số trang (ví dụ đơn giản) */}
+                    {/* Bạn có thể tạo logic phức tạp hơn với dấu "..." */}
+                    {[...Array(totalPages)].map((_, i) => {
+                      const page = i + 1;
+                      // Logic đơn giản để chỉ hiển thị vài trang
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              href="#"
+                              isActive={currentPage === page}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handlePageChange(page);
+                              }}
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      }
+                      if (
+                        page === currentPage - 2 ||
+                        page === currentPage + 2
+                      ) {
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        );
+                      }
+                      return null;
+                    })}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(currentPage + 1);
+                        }}
+                        className={
+                          currentPage === totalPages
+                            ? "pointer-events-none opacity-50"
+                            : undefined
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               )}
             </div>
           </div>

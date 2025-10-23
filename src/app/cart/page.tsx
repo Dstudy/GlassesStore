@@ -1,8 +1,10 @@
 "use client";
 
-import { useContext } from "react";
+// THAY ĐỔI 1: Import thêm useState, useRouter và AlertDialog
+import { useContext, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AppContext } from "@/context/AppContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -10,10 +12,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Minus, Trash2, ShoppingCart } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function CartPage() {
-  const { cart, updateQuantity, removeFromCart, getCartTotal } =
+  // THAY ĐỔI 2: Lấy 'user' từ context và khởi tạo 'router'
+  const { cart, updateQuantity, removeFromCart, getCartTotal, user } =
     useContext(AppContext);
+  const router = useRouter();
+
+  // THAY ĐỔI 3: Thêm state cho pop-up
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Hàm xử lý khi nhấp vào nút checkout
+  const handleCheckoutClick = () => {
+    if (user) {
+      // 1. Nếu đã đăng nhập, chuyển đến trang checkout
+      router.push("/checkout");
+    } else {
+      // 2. Nếu chưa đăng nhập, hiển thị pop-up
+      setShowAuthModal(true);
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -25,6 +53,7 @@ export default function CartPage() {
           </h1>
 
           {cart.length === 0 ? (
+            // ... (Phần giỏ hàng rỗng không thay đổi) ...
             <div className="mt-8 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-12 text-center">
               <ShoppingCart className="mx-auto h-16 w-16 text-gray-400" />
               <h2 className="mt-6 text-xl font-semibold">Your cart is empty</h2>
@@ -40,6 +69,7 @@ export default function CartPage() {
             </div>
           ) : (
             <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3 lg:items-start">
+              {/* ... (Phần danh sách sản phẩm không thay đổi) ... */}
               <div className="lg:col-span-2">
                 <Card className="shadow-sm">
                   <CardContent className="p-0">
@@ -132,6 +162,7 @@ export default function CartPage() {
                 </Card>
               </div>
 
+              {/* ... (Phần tóm tắt đơn hàng) ... */}
               <div className="lg:col-span-1">
                 <Card className="shadow-sm">
                   <CardHeader>
@@ -141,6 +172,7 @@ export default function CartPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
+                      {/* ... (Các dòng Subtotal, Shipping, Total) ... */}
                       <div className="flex justify-between">
                         <span>Subtotal</span>
                         <span>${getCartTotal().toFixed(2)}</span>
@@ -155,12 +187,13 @@ export default function CartPage() {
                         <span>${getCartTotal().toFixed(2)}</span>
                       </div>
                     </div>
+                    {/* THAY ĐỔI 4: Cập nhật nút Checkout */}
                     <Button
-                      asChild
                       size="lg"
                       className="mt-6 w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                      onClick={handleCheckoutClick} // Bỏ asChild, dùng onClick
                     >
-                      <Link href="/checkout">Proceed to Checkout</Link>
+                      Proceed to Checkout
                     </Button>
                   </CardContent>
                 </Card>
@@ -168,6 +201,25 @@ export default function CartPage() {
             </div>
           )}
         </div>
+
+        {/* THAY ĐỔI 5: Thêm AlertDialog (Pop-up) */}
+        <AlertDialog open={showAuthModal} onOpenChange={setShowAuthModal}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Please Sign In</AlertDialogTitle>
+              <AlertDialogDescription>
+                You must be logged in to proceed to checkout.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              {/* Nút này sẽ đưa người dùng đến trang đăng nhập */}
+              <AlertDialogAction onClick={() => router.push("/login")}>
+                Sign In
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
       <Footer />
     </div>

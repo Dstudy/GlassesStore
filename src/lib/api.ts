@@ -15,6 +15,7 @@ export interface ProductFilters {
   material?: string;
   search?: string;
   sortBy?: 'featured' | 'price-asc' | 'price-desc' | 'rating';
+  page?: number;
 }
 
 class ApiError extends Error {
@@ -68,12 +69,14 @@ function mapApiProduct(raw: any): Product {
   const brandName = sanitizeName(raw?.Brand?.name ?? (typeof raw?.brand === 'string' ? raw?.brand : ''));
   const materialName = sanitizeName(raw?.Material?.name ?? (typeof raw?.material === 'string' ? raw?.material : ''));
 
+  const firstUrl = raw?.ProductVariations?.[0]?.ProductImages?.[0]?.pic_url;
+
   return {
     id: Number(raw?.id ?? 0),
     name: String(raw?.name ?? ''),
     subtitle: typeof raw?.subtitle === 'string' ? raw.subtitle : undefined,
     price: Number(raw?.price ?? 0),
-    picUrl: Array.isArray(raw?.picUrl) ? raw.picUrl : [],
+    picUrl: firstUrl ? [firstUrl] : (Array.isArray(raw?.picUrl) ? raw.picUrl : []),
     description: String(raw?.description ?? ''),
     size: typeof raw?.size === 'string' ? raw.size : undefined,
     dimensions,
@@ -100,7 +103,12 @@ function mapApiProduct(raw: any): Product {
 
 export const productApi = {
   // Get all products with optional filters
-  async getAllProducts(filters?: ProductFilters): Promise<Product[]> {
+  async getAllProducts(filters?: ProductFilters): Promise<{
+  products: Product[];
+  totalPages: number;
+  totalProducts: number;
+  currentPage: number;
+}> {
     const params = new URLSearchParams();
     
     if (filters?.search) params.append('search', filters.search);
@@ -110,9 +118,17 @@ export const productApi = {
     if (filters?.material) params.append('material', filters.material);
     if (filters?.sortBy) params.append('sortBy', filters.sortBy);
 
+    if (filters?.page) params.append('page', filters.page.toString());
+
     const queryString = params.toString();
     const endpoint = queryString ? `/api/products?${queryString}` : '/api/products';
-    const res = await fetchApi<any>(endpoint);
+
+    const resjson = await fetchApi<any>(endpoint);
+
+    const res = resjson.data;
+
+    console.log('API Response:', res); // Debug log
+
     const arr = Array.isArray(res)
       ? res
       : Array.isArray(res?.data)
@@ -123,19 +139,13 @@ export const productApi = {
       ? res.products
       : [];
     const mapped: Product[] = (arr as any[]).map(mapApiProduct);
-    // Enrich with images
-    const withImages = await Promise.all(
-      mapped.map(async (p) => {
-        try {
-          const urls = await productApi.getProductImages(p.id);
-          const firstOnly = Array.isArray(urls) && urls.length ? [urls[0]] : p.picUrl;
-          return { ...p, picUrl: firstOnly };
-        } catch {
-          return p;
-        }
-      })
-    );
-    return withImages;
+    console.log(res.totalPages);
+    return {
+      products: mapped,
+      totalPages: Number(res?.totalPages ?? 1),
+      totalProducts: Number(res?.totalProducts ?? 0),
+      currentPage: Number(res?.currentPage ?? 1),
+    };
   },
 
   // Get product by ID

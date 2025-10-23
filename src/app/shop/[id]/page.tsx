@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext, useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { AppContext } from "@/context/AppContext";
@@ -21,12 +21,21 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Lens } from "@/components/ui/lens";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const productId = parseInt(id as string, 10);
-
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
@@ -37,8 +46,11 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { addToCart, toggleFavorite, favorites } = useContext(AppContext);
+  const { addToCart, toggleFavorite, favorites, user } = useContext(AppContext);
   const { toast } = useToast();
+  const router = useRouter();
+
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -188,13 +200,18 @@ export default function ProductDetailPage() {
   };
 
   const handleToggleFavorite = () => {
-    toggleFavorite(product.id);
-    toast({
-      title: isFavorite ? "Removed from Favorites" : "Added to Favorites",
-      description: `${product.name} has been ${
-        isFavorite ? "removed from" : "added to"
-      } your favorites.`,
-    });
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    } else {
+      toggleFavorite(product.id);
+      toast({
+        title: isFavorite ? "Removed from Favorites" : "Added to Favorites",
+        description: `${product.name} has been ${
+          isFavorite ? "removed from" : "added to"
+        } your favorites.`,
+      });
+    }
   };
 
   return (
@@ -212,14 +229,21 @@ export default function ProductDetailPage() {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:gap-16">
             <div className="space-y-4">
               <div className="rounded-lg overflow-hidden border shadow-lg">
-                <Image
-                  src={primaryImageUrl}
-                  alt={product.name}
-                  width={600}
-                  height={600}
-                  className="w-full h-full object-cover"
-                  data-ai-hint="product photo"
-                />
+                <Lens
+                  zoomFactor={1.5}
+                  lensSize={150}
+                  isStatic={false}
+                  ariaLabel="Zoom Area"
+                >
+                  <Image
+                    src={primaryImageUrl}
+                    alt={product.name}
+                    width={600}
+                    height={600}
+                    className="w-full h-full object-cover"
+                    data-ai-hint="product photo"
+                  />
+                </Lens>
               </div>
               {galleryImages.length > 1 && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
@@ -242,7 +266,7 @@ export default function ProductDetailPage() {
                         alt={`${product.name} view ${index + 1}`}
                         width={200}
                         height={200}
-                        className="w-full h-20 object-cover"
+                        className="w-full h-20 object-contain"
                       />
                     </button>
                   ))}
@@ -404,6 +428,23 @@ export default function ProductDetailPage() {
             </div>
           </div>
         )}
+
+        <AlertDialog open={showAuthModal} onOpenChange={setShowAuthModal}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Sign In Required</AlertDialogTitle>
+              <AlertDialogDescription>
+                You must be logged in to add products to your favorites.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => router.push("/login")}>
+                Sign In
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
       <Footer />
     </div>

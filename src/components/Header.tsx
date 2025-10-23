@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AppContext } from "@/context/AppContext";
@@ -31,6 +31,7 @@ const navLinks = [
   { href: "/shop", label: "Shop" },
   { href: "/#ai-assistant", label: "AI Assistant" },
   { href: "/#testimonials", label: "Testimonials" },
+  { href: "/about", label: "About us" },
 ];
 
 export default function Header() {
@@ -38,6 +39,12 @@ export default function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // Effect này chỉ chạy trên client, sau khi component đã mount
+    setIsMounted(true);
+  }, []); // Mảng rỗng `[]` đảm bảo nó chỉ chạy một lần
 
   const renderNavLinks = (isMobile = false) =>
     navLinks.map((link) => (
@@ -46,7 +53,9 @@ export default function Header() {
         href={link.href}
         className={cn(
           "text-sm font-medium transition-colors hover:text-primary",
-          pathname === link.href ? "text-primary" : "text-muted-foreground",
+          isMounted && pathname === link.href
+            ? "text-primary"
+            : "text-muted-foreground",
           isMobile && "block w-full p-3 text-lg"
         )}
         onClick={() => isMobile && setMobileMenuOpen(false)}
@@ -58,17 +67,19 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 ">
       <div className="container mx-auto flex h-16 items-center px-4 ">
-        <Link href="/" className="mr-6 flex items-center space-x-2">
-          <span className="font-headline text-2xl font-bold text-primary">
-            Spectra Specs
-          </span>
-        </Link>
+        <div className="flex-1 flex justify-start">
+          <Link href="/" className="flex items-center space-x-2">
+            <span className="font-headline text-2xl font-bold text-primary">
+              Spectra Specs
+            </span>
+          </Link>
+        </div>
         <nav className="hidden gap-6 md:flex">{renderNavLinks()}</nav>
         <div className="flex flex-1 items-center justify-end space-x-2">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" asChild className="relative">
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5" />
-              {cartItemCount > 0 && (
+              {isMounted && cartItemCount > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 justify-center p-0 text-xs bg-accent text-accent-foreground">
                   {cartItemCount}
                 </Badge>
@@ -95,14 +106,14 @@ export default function Header() {
                 <User
                   className={cn(
                     "h-5 w-5",
-                    user && "text-accent" // Làm nổi bật icon nếu đã đăng nhập
+                    isMounted && user && "text-accent" // Làm nổi bật icon nếu đã đăng nhập
                   )}
                 />
                 <span className="sr-only">User Menu</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {user ? (
+              {isMounted && user ? (
                 // --- Trường hợp đã đăng nhập ---
                 <>
                   <DropdownMenuLabel>Hello, {user.name}!</DropdownMenuLabel>

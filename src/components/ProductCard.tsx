@@ -40,8 +40,8 @@ export default function ProductCard({ product }: ProductCardProps) {
         }
         // Chúng ta không hiển thị màu sắc trong thiết kế mới,
         // nhưng logic này vẫn quan trọng để thêm đúng biến thể vào giỏ hàng
-      } catch (_) {
-        // ignore errors
+      } catch (error) {
+        console.error("Error fetching product variants:", error);
       }
     })();
     return () => {

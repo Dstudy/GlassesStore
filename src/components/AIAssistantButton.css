@@ -1,9 +1,14 @@
-.flex {
+/* * Mã này được sao chép từ ref.css, 
+ * đổi tên .outer-cont -> .ai-submit-button 
+ * và thêm trạng thái :disabled 
+ */
+.ai-submit-button {
+  /* Kiểu từ .flex trong ref.css */
   display: flex;
   align-items: center;
   gap: 5px;
-}
-.outer-cont {
+
+  /* Kiểu từ .outer-cont trong ref.css */
   padding: 12px 20px;
   border: none;
   font-size: 1rem;
@@ -19,7 +24,8 @@
     0px 5px 10px #000000cc;
   text-shadow: 1px 1px 1px #000;
 }
-.outer-cont::before {
+
+.ai-submit-button::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -37,16 +43,29 @@
   );
   transition: all 0.3s ease;
 }
-.outer-cont:hover::before {
+
+.ai-submit-button:hover::before {
   filter: blur(15px);
 }
-.outer-cont:active::before {
+
+.ai-submit-button:active::before {
   filter: blur(5px);
   transform: translateY(1px);
 }
-.outer-cont:active {
+.ai-submit-button:active {
   box-shadow:
     inset 0px 0px 5px #ffffffa9,
     inset 0px 35px 30px #000;
-  margin-top: 3px;
+  transform: translateY(2px);
+}
+
+/* THÊM MỚI: Thêm kiểu cho trạng thái disabled (pending) */
+.ai-submit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  filter: grayscale(80%);
+}
+
+.ai-submit-button:disabled:hover::before {
+  filter: blur(0);
 }

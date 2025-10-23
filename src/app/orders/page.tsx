@@ -24,8 +24,8 @@ export default function OrdersPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const userId = user?.id; // TODO: implement proper auth context
     (async () => {
+      const userId = user?.id;
       if (!userId) {
         setError("User not logged in");
         setLoading(false);
@@ -51,7 +51,7 @@ export default function OrdersPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [user]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -66,6 +66,21 @@ export default function OrdersPage() {
             <div className="mt-8 flex items-center gap-2">
               <Loader2 className="h-6 w-6 animate-spin" /> Loading orders...
             </div>
+          ) : error === "User not logged in" ? (
+            // Hiển thị Card đăng nhập nếu chưa đăng nhập
+            <Card className="mt-8">
+              <CardHeader>
+                <CardTitle>Please Sign In</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  You must be logged in to view your orders.
+                </p>
+                <Button asChild className="mt-4">
+                  <Link href="/login">Sign In</Link>
+                </Button>
+              </CardContent>
+            </Card>
           ) : error ? (
             <p className="mt-8 text-red-600">{error}</p>
           ) : orders.length === 0 ? (

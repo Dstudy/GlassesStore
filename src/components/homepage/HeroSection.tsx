@@ -100,7 +100,7 @@ export default function HeroSection() {
                       className={`container mx-auto flex h-full flex-col justify-center gap-4 px-4 ${align.container}`}
                     >
                       <h1
-                        className={`font-headline text-3xl font-bold tracking-tight text-white drop-shadow-sm sm:text-4xl md:text-5xl ${align.text}`}
+                        className={`font-headline text-3xl font-bold tracking-tight text-white drop-shadow-sm sm:text-4xl md:text-5xl select-none ${align.text}`}
                       >
                         {slide.headline}
                       </h1>
