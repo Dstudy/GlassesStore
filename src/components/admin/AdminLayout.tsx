@@ -39,14 +39,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Wait for user data to be loaded before checking admin status
   useEffect(() => {
-    if (isUserLoaded && !isAdmin()) {
+    if (isUserLoaded && !isAdmin() && !isLoggingOut) {
       setIsRedirecting(true);
       router.push("/");
     }
-  }, [isUserLoaded, isAdmin, router]);
+  }, [isUserLoaded, isAdmin, router, isLoggingOut]);
 
   // Show loading state while user data is being loaded or while redirecting
   if (!isUserLoaded || isRedirecting || (isUserLoaded && !isAdmin())) {
@@ -63,8 +64,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   const handleLogout = () => {
+    setIsLoggingOut(true);
     logout();
-    router.push("/");
+    router.push("/login");
   };
 
   return (
@@ -79,7 +81,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:inset-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -121,19 +123,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-sm font-medium text-primary-foreground">
-                    {user?.name?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-700">
-                  {user?.name}
-                </p>
-                <p className="text-xs text-gray-500">Administrator</p>
-              </div>
+              <div className="flex-shrink-0"></div>
             </div>
             <Button
               variant="ghost"
