@@ -83,7 +83,12 @@ export default function CheckoutPage() {
 
   function onSubmit(data: CheckoutFormData) {
     // Create order from server cart
-    const userId = user?.id;
+
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    const userId = user.id;
     const payload = {
       province: (data as any).province,
       district: (data as any).district,

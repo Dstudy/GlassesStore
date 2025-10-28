@@ -982,3 +982,29 @@ export const authApi = {
 };
 
 export { ApiError };
+
+export async function userApi() {
+  // Get user profile
+  async function getUserProfile(userId: number): Promise<{
+    id: number;
+    name: string;
+    email: string;
+    created_at: string;
+    updated_at: string;
+  }> {
+    const res = await fetchApi<any>(`/api/users/${userId}/profile`);
+    const profile = res?.data ?? res;
+
+    return {
+      id: Number(profile.id),
+      name: String(profile.name ?? profile.fullname ?? ""),
+      email: String(profile.email),
+      created_at: String(profile.createdAt ?? profile.created_at ?? ""),
+      updated_at: String(profile.updatedAt ?? profile.updated_at ?? ""),
+    };
+  }
+
+  return {
+    getUserProfile,
+  };
+}

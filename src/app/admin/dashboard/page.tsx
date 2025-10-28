@@ -5,174 +5,211 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Package,
-  ShoppingCart,
-  Users,
-  DollarSign,
+  BarChart3,
   TrendingUp,
   TrendingDown,
-  Eye,
-  Plus,
+  DollarSign,
+  ShoppingCart,
+  Users,
+  Package,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
-import Link from "next/link";
-import { productApi } from "@/lib/api";
+import { analyticsApi, ApiError } from "@/lib/api";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-interface DashboardStats {
-  totalProducts: number;
-  totalOrders: number;
-  totalRevenue: number;
-  totalUsers: number;
-  recentOrders: any[];
-  lowStockProducts: any[];
+interface AnalyticsData {
+  summary: {
+    [key: string]: {
+      value: number;
+      growth_rate: number;
+      previous_value: number;
+    };
+  };
+  monthly_revenue: Array<{
+    period: string;
+    month_name: string;
+    revenue: number;
+  }>;
+  top_products: Array<{
+    rank: number;
+    product_name: string;
+    sales: number;
+    revenue: number;
+  }>;
 }
 
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalProducts: 0,
-    totalOrders: 0,
-    totalRevenue: 0,
-    totalUsers: 0,
-    recentOrders: [],
-    lowStockProducts: [],
-  });
+export default function AdminDashboardPage() {
+  const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
+
+  const loadAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const analyticsData = await analyticsApi.getDashboardMetrics();
+      console.log("Analytics data received:", analyticsData);
+      console.log("Summary structure:", analyticsData?.summary);
+      setData(analyticsData);
+    } catch (err) {
+      console.error("Failed to load analytics data:", err);
+      if (err instanceof ApiError) {
+        setError(`Failed to load analytics: ${err.message}`);
+      } else {
+        setError("Failed to load analytics data. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateAnalytics = async () => {
+    try {
+      setUpdating(true);
+      await analyticsApi.updateAnalytics();
+      // Reload data after update
+      await loadAnalyticsData();
+    } catch (err) {
+      console.error("Failed to update analytics:", err);
+      if (err instanceof ApiError) {
+        setError(`Failed to update analytics: ${err.message}`);
+      } else {
+        setError("Failed to update analytics. Please try again.");
+      }
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-
-        // Fetch products
-        const products = await productApi.adminListProducts();
-
-        // Initialize stats with real data where available
-        const realStats: DashboardStats = {
-          totalProducts: Array.isArray(products) ? products.length : 0,
-          totalOrders: 0, // TODO: Fetch from orders API when available
-          totalRevenue: 0, // TODO: Fetch from orders API when available
-          totalUsers: 0, // TODO: Fetch from users API when available
-          recentOrders: [], // TODO: Fetch from orders API when available
-          lowStockProducts: [], // TODO: Calculate from products with stock data when available
-        };
-
-        setStats(realStats);
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        // Set empty stats on error
-        setStats({
-          totalProducts: 0,
-          totalOrders: 0,
-          totalRevenue: 0,
-          totalUsers: 0,
-          recentOrders: [],
-          lowStockProducts: [],
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
+    loadAnalyticsData();
   }, []);
-
-  const statCards = [
-    {
-      title: "Total Products",
-      value: stats.totalProducts,
-      icon: Package,
-      change: null, // TODO: Calculate percentage change when historical data available
-      changeType: null as const,
-      href: "/admin/products",
-    },
-    {
-      title: "Total Orders",
-      value: stats.totalOrders,
-      icon: ShoppingCart,
-      change: null, // TODO: Calculate percentage change when historical data available
-      changeType: null as const,
-      href: "/admin/orders",
-    },
-    {
-      title: "Total Revenue",
-      value: `$${stats.totalRevenue.toLocaleString()}`,
-      icon: DollarSign,
-      change: null, // TODO: Calculate percentage change when historical data available
-      changeType: null as const,
-      href: "/admin/analytics",
-    },
-    {
-      title: "Total Users",
-      value: stats.totalUsers,
-      icon: Users,
-      change: null, // TODO: Calculate percentage change when historical data available
-      changeType: null as const,
-      href: "/admin/users",
-    },
-  ];
 
   if (loading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg text-gray-500">Loading dashboard...</div>
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5 animate-spin" />
+            <div className="text-lg text-gray-500">Loading analytics...</div>
+          </div>
         </div>
       </AdminLayout>
     );
   }
 
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
+              <p className="text-gray-600">
+                Track your store performance and insights
+              </p>
+            </div>
+          </div>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <div className="flex gap-2">
+            <Button onClick={loadAnalyticsData} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+            <Button onClick={handleUpdateAnalytics} disabled={updating}>
+              {updating ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Update Analytics
+            </Button>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (!data) return null;
+
+  const metrics = [
+    {
+      title: "Total Revenue",
+      value: `$${data.summary.total_revenue?.value?.toLocaleString() || "0"}`,
+      icon: DollarSign,
+      growth: data.summary.total_revenue?.growth_rate || 0,
+      color: "text-green-600",
+    },
+    {
+      title: "Total Orders",
+      value: data.summary.total_orders?.value?.toString() || "0",
+      icon: ShoppingCart,
+      growth: data.summary.total_orders?.growth_rate || 0,
+      color: "text-blue-600",
+    },
+    {
+      title: "Total Customers",
+      value: data.summary.total_customers?.value?.toString() || "0",
+      icon: Users,
+      growth: data.summary.total_customers?.growth_rate || 0,
+      color: "text-purple-600",
+    },
+    {
+      title: "Total Products",
+      value: data.summary.total_products?.value?.toString() || "0",
+      icon: Package,
+      growth: 0,
+      color: "text-gray-600",
+    },
+  ];
+
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
             <p className="text-gray-600">
-              Welcome back! Here's what's happening with your store.
+              Track your store performance and insights
             </p>
           </div>
-          <div className="flex space-x-3">
-            <Button asChild>
-              <Link href="/admin/products/new">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Link>
+          <div className="flex gap-2">
+            <Button onClick={loadAnalyticsData} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={handleUpdateAnalytics} disabled={updating}>
+              {updating ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Update Analytics
             </Button>
           </div>
         </div>
 
-        {/* Stats Grid */}
+        {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statCards.map((stat) => (
-            <Card
-              key={stat.title}
-              className="hover:shadow-md transition-shadow"
-            >
+          {metrics.map((metric) => (
+            <Card key={metric.title}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">
-                  {stat.title}
+                  {metric.title}
                 </CardTitle>
-                <stat.icon className="h-4 w-4 text-gray-400" />
+                <metric.icon className={`h-4 w-4 ${metric.color}`} />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                {stat.change && stat.changeType && (
-                  <div className="flex items-center text-xs text-gray-500 mt-1">
-                    {stat.changeType === "positive" ? (
-                      <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
-                    )}
-                    <span
-                      className={
-                        stat.changeType === "positive"
-                          ? "text-green-500"
-                          : "text-red-500"
-                      }
-                    >
-                      {stat.change}
-                    </span>
-                    <span className="ml-1">from last month</span>
+                <div className="text-2xl font-bold">{metric.value}</div>
+                {metric.growth > 0 && (
+                  <div className="flex items-center text-xs text-green-500 mt-1">
+                    <TrendingUp className="h-3 w-3 mr-1" />
+                    <span>+{metric.growth}% from last month</span>
                   </div>
                 )}
               </CardContent>
@@ -180,138 +217,123 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Content Grid */}
+        {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Orders */}
+          {/* Monthly Revenue */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Recent Orders</CardTitle>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/admin/orders">
-                    <Eye className="h-4 w-4 mr-2" />
-                    View All
-                  </Link>
-                </Button>
-              </div>
+              <CardTitle className="flex items-center">
+                <BarChart3 className="h-5 w-5 mr-2" />
+                Monthly Revenue
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {stats.recentOrders.length > 0 ? (
-                  stats.recentOrders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">{order.customer}</p>
-                        <p className="text-sm text-gray-500">{order.date}</p>
+                {data.monthly_revenue.map((month) => (
+                  <div
+                    key={month.period}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="text-sm font-medium">
+                      {month.month_name}
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full"
+                          style={{
+                            width: `${
+                              (month.revenue /
+                                Math.max(
+                                  ...data.monthly_revenue.map((m) => m.revenue)
+                                )) *
+                              100
+                            }%`,
+                          }}
+                        />
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium">${order.amount}</p>
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            order.status === "Completed"
-                              ? "bg-green-100 text-green-800"
-                              : order.status === "Processing"
-                              ? "bg-blue-100 text-blue-800"
-                              : order.status === "Shipped"
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {order.status}
-                        </span>
-                      </div>
+                      <span className="text-sm font-medium w-16 text-right">
+                        ${month.revenue.toLocaleString()}
+                      </span>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No recent orders available</p>
-                    <p className="text-sm">
-                      Orders will appear here when available
-                    </p>
                   </div>
-                )}
+                ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Low Stock Products */}
+          {/* Top Products */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Low Stock Alert</CardTitle>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/admin/products">
-                    <Package className="h-4 w-4 mr-2" />
-                    Manage
-                  </Link>
-                </Button>
-              </div>
+              <CardTitle className="flex items-center">
+                <Package className="h-5 w-5 mr-2" />
+                Top Selling Products
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {stats.lowStockProducts.length > 0 ? (
-                  stats.lowStockProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center justify-between p-3 bg-red-50 rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-gray-500">
-                          Product ID: {product.id}
-                        </p>
+                {data.top_products.map((product) => (
+                  <div
+                    key={product.product_name}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center">
+                      <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold mr-3">
+                        {product.rank}
                       </div>
-                      <div className="text-right">
-                        <p className="text-red-600 font-medium">
-                          {product.stock} left
+                      <div>
+                        <p className="font-medium">{product.product_name}</p>
+                        <p className="text-sm text-gray-500">
+                          {product.sales} sales
                         </p>
-                        <Button size="sm" variant="outline" className="mt-1">
-                          Restock
-                        </Button>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No low stock alerts</p>
-                    <p className="text-sm">All products are well stocked</p>
+                    <div className="text-right">
+                      <p className="font-medium">
+                        ${product.revenue.toLocaleString()}
+                      </p>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Quick Actions */}
+        {/* Performance Summary */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>Performance Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button asChild variant="outline" className="h-20 flex-col">
-                <Link href="/admin/products/new">
-                  <Plus className="h-6 w-6 mb-2" />
-                  Add New Product
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-20 flex-col">
-                <Link href="/admin/orders">
-                  <ShoppingCart className="h-6 w-6 mb-2" />
-                  View Orders
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="h-20 flex-col">
-                <Link href="/admin/analytics">
-                  <TrendingUp className="h-6 w-6 mb-2" />
-                  View Analytics
-                </Link>
-              </Button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <TrendingUp className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                <h3 className="font-semibold text-green-800">Revenue Growth</h3>
+                <p className="text-2xl font-bold text-green-600">
+                  +{(data.summary.total_revenue?.growth_rate || 0).toFixed(1)}%
+                </p>
+                <p className="text-sm text-green-600">vs last month</p>
+              </div>
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <ShoppingCart className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                <h3 className="font-semibold text-blue-800">Order Growth</h3>
+                <p className="text-2xl font-bold text-blue-600">
+                  +{(data.summary.total_orders?.growth_rate || 0).toFixed(1)}%
+                </p>
+                <p className="text-sm text-blue-600">vs last month</p>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <Users className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                <h3 className="font-semibold text-purple-800">
+                  Customer Growth
+                </h3>
+                <p className="text-2xl font-bold text-purple-600">
+                  +{(data.summary.total_customers?.growth_rate || 0).toFixed(1)}
+                  %
+                </p>
+                <p className="text-sm text-purple-600">vs last month</p>
+              </div>
             </div>
           </CardContent>
         </Card>
